@@ -38,6 +38,9 @@ export async function GET(req: NextRequest) {
 
   const [items, total] = await Promise.all([
     Story.find(filter)
+      .select(
+        "slug title coverUrl author storyType hasMultipleChapters category latestChapNumber"
+      )
       .sort({ lastChapterUpdatedAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)

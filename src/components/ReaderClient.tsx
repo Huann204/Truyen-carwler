@@ -336,17 +336,17 @@ export default function ReaderClient({
 
       {/* Main Content Area */}
       {contentType === "comic" ? (
-        <div className="bg-slate-950 rounded-2xl p-1 sm:p-3 shadow-md">
+        <div className="max-w-3xl mx-auto">
           {images.length === 0 ? (
-            <div className="py-16 text-center text-slate-300 text-sm">
+            <div className="bg-white rounded-2xl border border-slate-200 py-16 text-center text-slate-500 text-sm">
               Không tìm thấy trang ảnh nào cho chương này.
             </div>
           ) : (
-            <div className="max-w-3xl mx-auto flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center gap-1">
               {images.map((imgUrl, idx) => (
                 <div
                   key={`${idx}-${imgUrl}`}
-                  className="w-full bg-slate-900/50 min-h-[320px] sm:min-h-[480px]"
+                  className="w-full bg-slate-100 min-h-[320px] sm:min-h-[480px]"
                 >
                   <SmartImage
                     src={imgUrl}

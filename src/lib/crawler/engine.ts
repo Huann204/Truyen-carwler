@@ -18,6 +18,7 @@ const USER_AGENT =
 export interface CrawlerLiveState {
   isRunning: boolean;
   stopRequested: boolean;
+  trigger: "auto" | "manual" | "single" | null;
   startedAt: string | null;
   currentTask: string;
   processedCount: number;
@@ -39,6 +40,7 @@ function getLiveState(): CrawlerLiveState {
     global._crawlerLiveState = {
       isRunning: false,
       stopRequested: false,
+      trigger: null,
       startedAt: null,
       currentTask: "Đang nghỉ",
       processedCount: 0,
@@ -125,13 +127,12 @@ export async function getOrCreateCrawlerConfig(): Promise<ICrawlerConfig> {
       parseInt(process.env.CRAWL_INTERVAL_MINUTES || "20", 10) || 20;
     cfg = await CrawlerConfig.create({
       key: "main",
-      autoCrawlEnabled: true,
+      autoCrawlEnabled: false,
       intervalMinutes: defaultInterval,
       pagesPerAutoRun: 2,
       initialChapLimit: 10,
       requestDelayMs: 350,
       scope: "all",
-      nextAutoRunAt: new Date(Date.now() + defaultInterval * 60_000),
     });
   }
   return cfg;
@@ -474,6 +475,7 @@ export async function runCrawlJob(options: RunCrawlOptions = {}) {
 
   state.isRunning = true;
   state.stopRequested = false;
+  state.trigger = trigger;
   state.startedAt = new Date().toISOString();
   state.currentTask = "Đang khởi tạo tiến trình...";
   state.processedCount = 0;
@@ -758,6 +760,7 @@ export async function runCrawlJob(options: RunCrawlOptions = {}) {
   } finally {
     state.isRunning = false;
     state.stopRequested = false;
+    state.trigger = null;
     state.currentTask = "Đang nghỉ";
   }
 }

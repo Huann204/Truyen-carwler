@@ -15,7 +15,7 @@ export interface ICrawlerConfig extends Document {
 const CrawlerConfigSchema = new Schema<ICrawlerConfig>(
   {
     key: { type: String, default: "main", unique: true },
-    autoCrawlEnabled: { type: Boolean, default: true },
+    autoCrawlEnabled: { type: Boolean, default: false },
     intervalMinutes: { type: Number, default: 20, min: 5, max: 1440 },
     pagesPerAutoRun: { type: Number, default: 2, min: 1, max: 20 },
     initialChapLimit: { type: Number, default: 10, min: 1, max: 200 },

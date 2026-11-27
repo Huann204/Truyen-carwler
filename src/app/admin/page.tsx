@@ -100,7 +100,7 @@ export default function AdminCrawlerPage() {
   const [crawlAllMissing, setCrawlAllMissing] = useState(false);
 
   // Schedule Config Form
-  const [autoCrawlEnabled, setAutoCrawlEnabled] = useState(true);
+  const [autoCrawlEnabled, setAutoCrawlEnabled] = useState(false);
   const [intervalMinutes, setIntervalMinutes] = useState(20);
   const [pagesPerAutoRun, setPagesPerAutoRun] = useState(2);
   const [initialChapLimit, setInitialChapLimit] = useState(10);
@@ -119,14 +119,16 @@ export default function AdminCrawlerPage() {
       const json: CrawlerStatusResponse = await res.json();
       setNeedsLogin(false);
       setData(json);
-      if (json.config && !configLoadedOnce) {
-        setAutoCrawlEnabled(json.config.autoCrawlEnabled);
-        setIntervalMinutes(json.config.intervalMinutes);
-        setPagesPerAutoRun(json.config.pagesPerAutoRun);
-        setInitialChapLimit(json.config.initialChapLimit);
-        setRequestDelayMs(json.config.requestDelayMs);
-        setScope(json.config.scope);
-        setConfigLoadedOnce(true);
+      if (json.config) {
+        setAutoCrawlEnabled(Boolean(json.config.autoCrawlEnabled));
+        if (!configLoadedOnce) {
+          setIntervalMinutes(json.config.intervalMinutes);
+          setPagesPerAutoRun(json.config.pagesPerAutoRun);
+          setInitialChapLimit(json.config.initialChapLimit);
+          setRequestDelayMs(json.config.requestDelayMs);
+          setScope(json.config.scope);
+          setConfigLoadedOnce(true);
+        }
       }
     } catch {
       // ignore transient network errors
@@ -376,13 +378,23 @@ export default function AdminCrawlerPage() {
             )}
           </div>
         </div>
-        {data?.config?.nextAutoRunAt && dbConnected && (
-          <div className="text-xs font-medium text-emerald-800 flex items-center gap-1.5">
+        {dbConnected && (
+          <div className="text-xs font-medium flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5" />
-            Quét tự động kế tiếp:{" "}
-            <strong>
-              {new Date(data.config.nextAutoRunAt).toLocaleTimeString("vi-VN")}
-            </strong>
+            {data?.config?.autoCrawlEnabled && data?.config?.nextAutoRunAt ? (
+              <span className="text-emerald-800">
+                Quét tự động kế tiếp:{" "}
+                <strong>
+                  {new Date(data.config.nextAutoRunAt).toLocaleTimeString(
+                    "vi-VN"
+                  )}
+                </strong>
+              </span>
+            ) : (
+              <span className="text-slate-600">
+                Tự động cào: <strong>Đang tắt</strong> (chỉ chạy khi bạn bật hoặc bấm cào tay)
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -449,7 +461,9 @@ export default function AdminCrawlerPage() {
             ) : (
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300">
                 <Activity className="w-3.5 h-3.5 text-slate-400" />
-                Đang chờ lệnh / Chạy ngầm theo lịch
+                {data?.config?.autoCrawlEnabled
+                  ? "Đang chờ chu kỳ tự động"
+                  : "Đang nghỉ (Tự động đang tắt)"}
               </span>
             )}
             <span className="text-xs sm:text-sm text-slate-300 truncate max-w-md">
@@ -457,7 +471,25 @@ export default function AdminCrawlerPage() {
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={!dbConnected}
+              onClick={() =>
+                void postAction({
+                  action: "toggle_auto",
+                  autoCrawlEnabled: !Boolean(data?.config?.autoCrawlEnabled),
+                })
+              }
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold border transition-colors disabled:opacity-40 cursor-pointer ${
+                data?.config?.autoCrawlEnabled
+                  ? "bg-indigo-600 border-indigo-500 text-white hover:bg-indigo-500"
+                  : "bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800"
+              }`}
+              title="Bật hoặc tắt ngay chế độ tự động cào định kỳ"
+            >
+              Tự động: {data?.config?.autoCrawlEnabled ? "ĐANG BẬT" : "ĐANG TẮT"}
+            </button>
             {!isRunning ? (
               <button
                 type="button"
