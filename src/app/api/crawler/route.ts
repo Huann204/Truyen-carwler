@@ -10,15 +10,33 @@ import {
   requestStopCrawler,
   runCrawlJob,
 } from "@/lib/crawler/engine";
+import {
+  getAdminSecret,
+  isAdminAuthenticated,
+  verifyAdminPassword,
+} from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const authRequired = Boolean(getAdminSecret());
+  if (authRequired && !isAdminAuthenticated(req)) {
+    return NextResponse.json(
+      {
+        authRequired: true,
+        authenticated: false,
+        error: "Yêu cầu đăng nhập quản trị",
+      },
+      { status: 401 }
+    );
+  }
+
   const dbHealth = await checkDBHealth();
   const live = getCrawlerLiveStatus();
 
   if (!dbHealth.connected) {
     return NextResponse.json({
+      authRequired,
       dbHealth,
       live,
       stats: null,
@@ -47,6 +65,7 @@ export async function GET() {
   ]);
 
   return NextResponse.json({
+    authRequired,
     dbHealth,
     live,
     stats: {
@@ -67,10 +86,19 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const action = body?.action as string;
 
-    const adminSecret = process.env.ADMIN_SECRET?.trim();
-    if (adminSecret && body?.secret !== adminSecret) {
+    const secret = getAdminSecret();
+    const hasValidSession = isAdminAuthenticated(req);
+    const hasValidBodySecret =
+      Boolean(secret) &&
+      typeof body?.secret === "string" &&
+      verifyAdminPassword(body.secret);
+
+    if (secret && !hasValidSession && !hasValidBodySecret) {
       return NextResponse.json(
-        { error: "Sai mã bảo mật Admin (ADMIN_SECRET)" },
+        {
+          authRequired: true,
+          error: "Phiên đăng nhập hết hạn hoặc sai mật khẩu quản trị",
+        },
         { status: 401 }
       );
     }

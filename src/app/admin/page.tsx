@@ -8,9 +8,13 @@ import {
   Clock,
   Database,
   DownloadCloud,
+  Eye,
+  EyeOff,
   Layers,
   Link2,
   Loader2,
+  Lock,
+  LogOut,
   Play,
   RefreshCw,
   Save,
@@ -19,6 +23,7 @@ import {
 } from "lucide-react";
 
 interface CrawlerStatusResponse {
+  authRequired?: boolean;
   dbHealth: {
     connected: boolean;
     uriMasked: string;
@@ -77,6 +82,13 @@ export default function AdminCrawlerPage() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string>("");
 
+  // Admin Login State
+  const [needsLogin, setNeedsLogin] = useState(false);
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState("");
+  const [loggingIn, setLoggingIn] = useState(false);
+
   // Bulk Crawl Form
   const [startPage, setStartPage] = useState(1);
   const [endPage, setEndPage] = useState(2);
@@ -99,7 +111,13 @@ export default function AdminCrawlerPage() {
   const fetchStatus = useCallback(async () => {
     try {
       const res = await fetch("/api/crawler", { cache: "no-store" });
+      if (res.status === 401) {
+        setNeedsLogin(true);
+        setData(null);
+        return;
+      }
       const json: CrawlerStatusResponse = await res.json();
+      setNeedsLogin(false);
       setData(json);
       if (json.config && !configLoadedOnce) {
         setAutoCrawlEnabled(json.config.autoCrawlEnabled);
@@ -122,12 +140,45 @@ export default function AdminCrawlerPage() {
   }, [fetchStatus]);
 
   useEffect(() => {
+    if (needsLogin) return;
     const ms = data?.live?.isRunning ? 2200 : 12000;
     const timer = setInterval(() => {
       void fetchStatus();
     }, ms);
     return () => clearInterval(timer);
-  }, [data?.live?.isRunning, fetchStatus]);
+  }, [needsLogin, data?.live?.isRunning, fetchStatus]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError("");
+    setLoggingIn(true);
+    try {
+      const res = await fetch("/api/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setLoginError(json.error || "Đăng nhập thất bại");
+        return;
+      }
+      setPassword("");
+      setNeedsLogin(false);
+      setLoading(true);
+      await fetchStatus();
+    } catch {
+      setLoginError("Không thể kết nối tới máy chủ");
+    } finally {
+      setLoggingIn(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await fetch("/api/admin/auth", { method: "DELETE" });
+    setNeedsLogin(true);
+    setData(null);
+  };
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -141,6 +192,11 @@ export default function AdminCrawlerPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      if (res.status === 401) {
+        setNeedsLogin(true);
+        setData(null);
+        return;
+      }
       const json = await res.json();
       if (!res.ok) {
         showToast(`Lỗi: ${json.error || "Không thực hiện được"}`);
@@ -153,11 +209,83 @@ export default function AdminCrawlerPage() {
     }
   };
 
-  if (loading && !data) {
+  if (loading && !data && !needsLogin) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-16 text-center text-slate-500">
         <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-indigo-600" />
         Đang tải bảng điều khiển Crawler...
+      </div>
+    );
+  }
+
+  if (needsLogin) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-4">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h1 className="text-xl font-extrabold text-slate-900 text-center mb-1">
+            Đăng Nhập Quản Trị Crawler
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 text-center mb-6">
+            Trang quản trị đang được bảo vệ bởi <code className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-xs">ADMIN_SECRET</code>.
+          </p>
+
+          <form onSubmit={(e) => void handleLogin(e)} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Mật khẩu quản trị
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoFocus
+                  placeholder="Nhập ADMIN_SECRET..."
+                  className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  aria-label="Hiện hoặc ẩn mật khẩu"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {loginError && (
+              <div className="rounded-xl bg-rose-50 border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700">
+                {loginError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loggingIn || !password.trim()}
+              className="w-full py-2.5 rounded-full text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors cursor-pointer"
+            >
+              {loggingIn ? "Đang xác thực..." : "Đăng nhập"}
+            </button>
+          </form>
+
+          <div className="mt-5 text-center">
+            <Link
+              href="/"
+              className="text-xs font-semibold text-slate-500 hover:text-indigo-600"
+            >
+              ← Quay về Trang đọc truyện
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -178,7 +306,24 @@ export default function AdminCrawlerPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {data?.authRequired ? (
+            <button
+              type="button"
+              onClick={() => void handleLogout()}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Đăng xuất
+            </button>
+          ) : (
+            <span
+              className="px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200"
+              title="Đặt ADMIN_SECRET trong .env.local khi đưa lên mạng để khóa trang này"
+            >
+              Đang mở (chưa đặt ADMIN_SECRET)
+            </span>
+          )}
           <button
             type="button"
             onClick={() => void fetchStatus()}
