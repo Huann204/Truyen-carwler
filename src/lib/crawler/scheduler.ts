@@ -16,7 +16,9 @@ declare global {
 export function startAutoCrawlerScheduler() {
   if (global._autoCrawlerCronTask) return;
 
-  console.log("[AutoCrawler] Khởi động bộ lập lịch tự động quét truyện mới.");
+  console.log(
+    "[AutoCrawler] Bộ lập lịch sẵn sàng (chỉ tự động chạy khi bạn bật trong /admin)."
+  );
 
   const task = cron.schedule("* * * * *", async () => {
     try {
@@ -58,7 +60,7 @@ export function startAutoCrawlerScheduler() {
 
   global._autoCrawlerCronTask = task;
 
-  // Auto-bootstrap when database is connected and empty
+  // Only bootstrap empty DB automatically when autoCrawlEnabled is explicitly true
   setTimeout(async () => {
     try {
       if (getCrawlerLiveStatus().isRunning) return;

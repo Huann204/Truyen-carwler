@@ -5,7 +5,6 @@ import {
   BookOpen,
   Flame,
   RefreshCw,
-  Search,
   Sparkles,
 } from "lucide-react";
 import { checkDBHealth } from "@/lib/mongodb";
@@ -16,6 +15,7 @@ import {
 } from "@/lib/queries";
 import StoryCard from "@/components/StoryCard";
 import ContinueReadingBar from "@/components/ContinueReadingBar";
+import HeroSearchForm from "@/components/HeroSearchForm";
 
 export const dynamic = "force-dynamic";
 
@@ -386,24 +386,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             Đọc mượt mà trên điện thoại và máy tính — tự động kiểm tra và cập nhật ngay khi có chương mới.
           </p>
 
-          <form action="/" method="get" className="max-w-lg mx-auto flex gap-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                name="q"
-                defaultValue={q}
-                placeholder="Nhập tên truyện, tác giả, thể loại..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-full bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-              />
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            </div>
-            <button
-              type="submit"
-              className="px-5 py-2.5 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-sm transition-colors cursor-pointer shrink-0"
-            >
-              Tìm kiếm
-            </button>
-          </form>
+          <HeroSearchForm initialQuery={q} />
         </div>
       </div>
 

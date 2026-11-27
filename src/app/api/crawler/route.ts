@@ -118,6 +118,48 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (action === "toggle_auto") {
+      const cfg = await getOrCreateCrawlerConfig();
+      const autoCrawlEnabled = Boolean(body.autoCrawlEnabled);
+      const intervalMinutes = Math.min(
+        1440,
+        Math.max(5, cfg.intervalMinutes || 20)
+      );
+
+      const updateOps = autoCrawlEnabled
+        ? {
+            $set: {
+              autoCrawlEnabled: true,
+              nextAutoRunAt: new Date(Date.now() + intervalMinutes * 60_000),
+            },
+          }
+        : {
+            $set: { autoCrawlEnabled: false },
+            $unset: { nextAutoRunAt: 1 },
+          };
+
+      const updated = await CrawlerConfig.findOneAndUpdate(
+        { key: "main" },
+        updateOps,
+        { new: true }
+      );
+
+      if (!autoCrawlEnabled) {
+        const live = getCrawlerLiveStatus();
+        if (live.isRunning && live.trigger === "auto") {
+          requestStopCrawler();
+        }
+      }
+
+      return NextResponse.json({
+        ok: true,
+        config: updated,
+        message: autoCrawlEnabled
+          ? "Đã BẬT chế độ tự động cào!"
+          : "Đã TẮT chế độ tự động cào — hệ thống sẽ không tự chạy nữa.",
+      });
+    }
+
     if (action === "update_config") {
       await getOrCreateCrawlerConfig();
       const intervalMinutes = Math.min(
@@ -141,23 +183,50 @@ export async function POST(req: NextRequest) {
         ? body.scope
         : "all";
 
+      const updateOps = autoCrawlEnabled
+        ? {
+            $set: {
+              autoCrawlEnabled: true,
+              intervalMinutes,
+              pagesPerAutoRun,
+              initialChapLimit,
+              requestDelayMs,
+              scope,
+              nextAutoRunAt: new Date(Date.now() + intervalMinutes * 60_000),
+            },
+          }
+        : {
+            $set: {
+              autoCrawlEnabled: false,
+              intervalMinutes,
+              pagesPerAutoRun,
+              initialChapLimit,
+              requestDelayMs,
+              scope,
+            },
+            $unset: { nextAutoRunAt: 1 },
+          };
+
       const updated = await CrawlerConfig.findOneAndUpdate(
         { key: "main" },
-        {
-          $set: {
-            autoCrawlEnabled,
-            intervalMinutes,
-            pagesPerAutoRun,
-            initialChapLimit,
-            requestDelayMs,
-            scope,
-            nextAutoRunAt: new Date(Date.now() + intervalMinutes * 60_000),
-          },
-        },
+        updateOps,
         { new: true }
       );
 
-      return NextResponse.json({ ok: true, config: updated });
+      if (!autoCrawlEnabled) {
+        const live = getCrawlerLiveStatus();
+        if (live.isRunning && live.trigger === "auto") {
+          requestStopCrawler();
+        }
+      }
+
+      return NextResponse.json({
+        ok: true,
+        config: updated,
+        message: autoCrawlEnabled
+          ? "Đã lưu cấu hình & BẬT tự động cào!"
+          : "Đã lưu cấu hình (Chế độ tự động đang TẮT).",
+      });
     }
 
     if (action === "run") {
