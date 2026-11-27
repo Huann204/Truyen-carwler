@@ -346,12 +346,12 @@ export default function ReaderClient({
               {images.map((imgUrl, idx) => (
                 <div
                   key={`${idx}-${imgUrl}`}
-                  className="w-full bg-slate-900/90 min-h-[160px]"
+                  className="w-full bg-slate-900/50 min-h-[320px] sm:min-h-[480px]"
                 >
                   <SmartImage
                     src={imgUrl}
                     alt={`Trang ${idx + 1} - Chap ${chapNumber} - ${storyTitle}`}
-                    priority={idx < 3}
+                    priority={idx < 4}
                     className="w-full h-auto block mx-auto"
                   />
                 </div>
