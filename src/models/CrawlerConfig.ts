@@ -8,6 +8,7 @@ export interface ICrawlerConfig extends Document {
   initialChapLimit: number;
   requestDelayMs: number;
   scope: "all" | "comic" | "text";
+  sourceMode: "both" | "vui.mobi" | "tuthienbao.com";
   lastAutoRunAt?: Date;
   nextAutoRunAt?: Date;
 }
@@ -24,6 +25,11 @@ const CrawlerConfigSchema = new Schema<ICrawlerConfig>(
       type: String,
       enum: ["all", "comic", "text"],
       default: "all",
+    },
+    sourceMode: {
+      type: String,
+      enum: ["both", "vui.mobi", "tuthienbao.com"],
+      default: "both",
     },
     lastAutoRunAt: { type: Date },
     nextAutoRunAt: { type: Date },
