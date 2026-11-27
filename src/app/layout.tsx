@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import ScrollToTop from "@/components/ScrollToTop";
 
 export const metadata: Metadata = {
   title: "TruyệnMới - Đọc Truyện Tranh & Truyện Chữ Tự Động Cập Nhật",
@@ -22,6 +23,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://vui.mobi" crossOrigin="anonymous" />
       </head>
       <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+        <ScrollToTop />
         <Navbar />
         <main className="flex-1">{children}</main>
         <footer className="border-t border-slate-200 bg-white py-6 mt-12">
