@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -29,73 +30,78 @@ interface HomePageProps {
   }>;
 }
 
-export default async function HomePage({ searchParams }: HomePageProps) {
-  const sp = await searchParams;
-  const q = (sp.q || "").trim();
-  const type = sp.type === "comic" || sp.type === "text" ? sp.type : "";
-  const status =
-    sp.status === "ongoing" || sp.status === "completed" ? sp.status : "";
-  const categorySlug = (sp.category || "").trim();
-  const sort = sp.sort === "views" ? "views" : "latest";
-  const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
-  const pageSize = 24;
+function StoriesSectionSkeleton() {
+  return (
+    <div className="animate-pulse space-y-6">
+      <div className="h-24 rounded-2xl bg-slate-200/80" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <div
+            key={i}
+            className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden"
+          >
+            <div className="aspect-[5/7] bg-slate-200" />
+            <div className="p-2.5 space-y-2">
+              <div className="h-4 bg-slate-200 rounded w-4/5" />
+              <div className="h-3 bg-slate-100 rounded w-1/2" />
+              <div className="h-3 bg-slate-100 rounded w-full mt-2" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
+async function HomeStoriesSection({
+  q,
+  type,
+  status,
+  categorySlug,
+  sort,
+  page,
+}: {
+  q: string;
+  type: string;
+  status: string;
+  categorySlug: string;
+  sort: string;
+  page: number;
+}) {
   const health = await checkDBHealth();
 
   if (!health.connected) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        <div className="bg-white rounded-3xl border border-amber-200 shadow-sm p-6 sm:p-8">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-xl font-extrabold text-slate-900 mb-2">
-                Chưa kết nối được tới MongoDB
-              </h1>
-              <p className="text-sm text-slate-600 mb-3 leading-relaxed">
-                Hệ thống đang cấu hình kết nối tới{" "}
-                <code className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-mono text-xs">
-                  {health.uriMasked}
-                </code>{" "}
-                nhưng chưa phản hồi ({health.error}).
-              </p>
-              <ul className="list-disc pl-5 text-sm text-slate-600 space-y-1.5 mb-5">
-                <li>
-                  Nếu dùng <strong>MongoDB cài trên máy</strong>: hãy bật dịch vụ{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-slate-100 text-xs">
-                    MongoDB Server (mongod)
-                  </code>{" "}
-                  cổng <code className="px-1.5 py-0.5 rounded bg-slate-100 text-xs">27017</code>.
-                </li>
-                <li>
-                  Nếu dùng <strong>MongoDB Atlas (Cloud)</strong>: mở file{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-slate-100 text-xs">
-                    .env.local
-                  </code>{" "}
-                  và kiểm tra giá trị{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-slate-100 text-xs">
-                    MONGODB_URI
-                  </code>
-                  .
-                </li>
-              </ul>
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Thử kết nối lại
-                </Link>
-                <Link
-                  href="/admin"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border border-slate-300 text-slate-700 hover:bg-slate-100"
-                >
-                  Mở trang Quản trị Crawler
-                </Link>
-              </div>
+      <div className="bg-white rounded-3xl border border-amber-200 shadow-sm p-6 sm:p-8">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-900 mb-2">
+              Chưa kết nối được tới MongoDB
+            </h2>
+            <p className="text-sm text-slate-600 mb-3 leading-relaxed">
+              Hệ thống đang cấu hình kết nối tới{" "}
+              <code className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-mono text-xs">
+                {health.uriMasked}
+              </code>{" "}
+              nhưng chưa phản hồi ({health.error}).
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Thử kết nối lại
+              </Link>
+              <Link
+                href="/admin"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border border-slate-300 text-slate-700 hover:bg-slate-100"
+              >
+                Mở trang Quản trị Crawler
+              </Link>
             </div>
           </div>
         </div>
@@ -103,6 +109,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     );
   }
 
+  const pageSize = 24;
   const isDefaultHome = !q && !type && !status && !categorySlug && page === 1;
 
   const [{ totalCount, stories }, hotStories, categoryGroups] = await Promise.all([
@@ -137,6 +144,231 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     const str = params.toString();
     return str ? `/?${str}` : "/";
   };
+
+  if (totalCount === 0 && !q && !type && !status && !categorySlug) {
+    return (
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-8 sm:p-12 text-center my-8">
+        <div className="w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-4">
+          <BookOpen className="w-7 h-7" />
+        </div>
+        <h2 className="text-xl font-extrabold text-slate-900 mb-2">
+          Kho truyện đang khởi tạo dữ liệu đầu tiên
+        </h2>
+        <p className="text-sm text-slate-600 max-w-md mx-auto mb-6">
+          MongoDB đã kết nối thành công! Hệ thống tự động cào đang chạy ngầm, hoặc bạn có thể vào trang Quản trị để bấm cào ngay và theo dõi log trực tiếp.
+        </p>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Link
+            href="/admin"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Mở Quản Trị &amp; Bấm Cào Ngay
+          </Link>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold border border-slate-300 text-slate-700 hover:bg-slate-100"
+          >
+            Làm mới trang chủ
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {hotStories.length > 0 && (
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base sm:text-lg font-extrabold text-slate-900 inline-flex items-center gap-1.5">
+              <Flame className="w-5 h-5 text-rose-500 fill-rose-500" />
+              Truyện Đang Hot
+            </h2>
+            <Link
+              href="/?sort=views"
+              className="text-xs sm:text-sm font-semibold text-indigo-600 hover:text-indigo-700"
+            >
+              Xem bảng xếp hạng »
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3.5">
+            {hotStories.map((st) => (
+              <StoryCard key={`hot-${st.slug}`} story={st} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Filter Bar */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-6 shadow-xs space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-bold text-slate-500 mr-1">
+            Định dạng:
+          </span>
+          {[
+            { label: "Tất cả", val: undefined },
+            { label: "Truyện Tranh", val: "comic" },
+            { label: "Truyện Chữ", val: "text" },
+          ].map((opt) => {
+            const active = (type || undefined) === opt.val;
+            return (
+              <Link
+                key={opt.label}
+                href={buildFilterHref({ type: opt.val, page: undefined })}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                  active
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                {opt.label}
+              </Link>
+            );
+          })}
+
+          <span className="text-xs font-bold text-slate-500 ml-2 mr-1">
+            Tình trạng:
+          </span>
+          {[
+            { label: "Tất cả", val: undefined },
+            { label: "Đang tiến hành", val: "ongoing" },
+            { label: "Hoàn thành", val: "completed" },
+          ].map((opt) => {
+            const active = (status || undefined) === opt.val;
+            return (
+              <Link
+                key={opt.label}
+                href={buildFilterHref({ status: opt.val, page: undefined })}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                  active
+                    ? "bg-slate-900 text-white"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                {opt.label}
+              </Link>
+            );
+          })}
+        </div>
+
+        {categoryGroups.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
+            <span className="text-xs font-bold text-slate-500 mr-1">
+              Chuyên mục:
+            </span>
+            <Link
+              href={buildFilterHref({ category: undefined, page: undefined })}
+              className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
+                !categorySlug
+                  ? "bg-indigo-50 border-indigo-300 text-indigo-700 font-semibold"
+                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              Tất cả
+            </Link>
+            {categoryGroups.map((cat) => (
+              <Link
+                key={cat._id}
+                href={buildFilterHref({ category: cat._id, page: undefined })}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
+                  categorySlug === cat._id
+                    ? "bg-indigo-50 border-indigo-300 text-indigo-700 font-semibold"
+                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                {cat.name}{" "}
+                <span className="opacity-60">({cat.count})</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2">
+          <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
+            {q ? `Kết quả tìm kiếm: "${q}"` : "Truyện Mới Cập Nhật"}
+          </h2>
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-200/80 text-slate-700">
+            {totalCount.toLocaleString("vi-VN")} bộ
+          </span>
+        </div>
+
+        <div className="inline-flex rounded-full bg-white border border-slate-200 p-0.5 text-xs font-semibold">
+          <Link
+            href={buildFilterHref({ sort: undefined, page: undefined })}
+            className={`px-3 py-1 rounded-full ${
+              sort === "latest"
+                ? "bg-indigo-600 text-white"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Mới cập nhật
+          </Link>
+          <Link
+            href={buildFilterHref({ sort: "views", page: undefined })}
+            className={`px-3 py-1 rounded-full ${
+              sort === "views"
+                ? "bg-indigo-600 text-white"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Xem nhiều
+          </Link>
+        </div>
+      </div>
+
+      {stories.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-500 text-sm">
+          Không tìm thấy bộ truyện nào khớp với bộ lọc hiện tại.
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5">
+          {stories.map((story) => (
+            <StoryCard key={story.slug} story={story} />
+          ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="mt-8 flex items-center justify-center gap-2 flex-wrap">
+          {page > 1 && (
+            <Link
+              href={buildFilterHref({ page: String(page - 1) })}
+              className="px-3.5 py-1.5 rounded-full text-sm font-semibold bg-white border border-slate-200 hover:bg-slate-100"
+            >
+              « Trang trước
+            </Link>
+          )}
+          <span className="px-4 py-1.5 rounded-full text-sm font-bold bg-indigo-600 text-white">
+            Trang {page} / {totalPages}
+          </span>
+          {page < totalPages && (
+            <Link
+              href={buildFilterHref({ page: String(page + 1) })}
+              className="px-3.5 py-1.5 rounded-full text-sm font-semibold bg-white border border-slate-200 hover:bg-slate-100"
+            >
+              Trang sau »
+            </Link>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+export default async function HomePage({ searchParams }: HomePageProps) {
+  const sp = await searchParams;
+  const q = (sp.q || "").trim();
+  const type = sp.type === "comic" || sp.type === "text" ? sp.type : "";
+  const status =
+    sp.status === "ongoing" || sp.status === "completed" ? sp.status : "";
+  const categorySlug = (sp.category || "").trim();
+  const sort = sp.sort === "views" ? "views" : "latest";
+  const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
+
+  const filterKey = `${q}|${type}|${status}|${categorySlug}|${sort}|${page}`;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -177,213 +409,16 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
       <ContinueReadingBar />
 
-      {totalCount === 0 && !q && !type && !status && !categorySlug ? (
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-8 sm:p-12 text-center my-8">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-4">
-            <BookOpen className="w-7 h-7" />
-          </div>
-          <h2 className="text-xl font-extrabold text-slate-900 mb-2">
-            Kho truyện đang khởi tạo dữ liệu đầu tiên
-          </h2>
-          <p className="text-sm text-slate-600 max-w-md mx-auto mb-6">
-            MongoDB đã kết nối thành công! Hệ thống tự động cào đang chạy ngầm, hoặc bạn có thể vào trang Quản trị để bấm cào ngay và theo dõi log trực tiếp.
-          </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <Link
-              href="/admin"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Mở Quản Trị &amp; Bấm Cào Ngay
-            </Link>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold border border-slate-300 text-slate-700 hover:bg-slate-100"
-            >
-              Làm mới trang chủ
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <>
-          {hotStories.length > 0 && (
-            <section className="mb-8">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 inline-flex items-center gap-1.5">
-                  <Flame className="w-5 h-5 text-rose-500 fill-rose-500" />
-                  Truyện Đang Hot
-                </h2>
-                <Link
-                  href="/?sort=views"
-                  className="text-xs sm:text-sm font-semibold text-indigo-600 hover:text-indigo-700"
-                >
-                  Xem bảng xếp hạng »
-                </Link>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3.5">
-                {hotStories.map((st) => (
-                  <StoryCard key={`hot-${st.slug}`} story={st} />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Filter Bar */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-6 shadow-xs space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-slate-500 mr-1">
-                Định dạng:
-              </span>
-              {[
-                { label: "Tất cả", val: undefined },
-                { label: "Truyện Tranh", val: "comic" },
-                { label: "Truyện Chữ", val: "text" },
-              ].map((opt) => {
-                const active = (type || undefined) === opt.val;
-                return (
-                  <Link
-                    key={opt.label}
-                    href={buildFilterHref({ type: opt.val, page: undefined })}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                      active
-                        ? "bg-indigo-600 text-white"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                    }`}
-                  >
-                    {opt.label}
-                  </Link>
-                );
-              })}
-
-              <span className="text-xs font-bold text-slate-500 ml-2 mr-1">
-                Tình trạng:
-              </span>
-              {[
-                { label: "Tất cả", val: undefined },
-                { label: "Đang tiến hành", val: "ongoing" },
-                { label: "Hoàn thành", val: "completed" },
-              ].map((opt) => {
-                const active = (status || undefined) === opt.val;
-                return (
-                  <Link
-                    key={opt.label}
-                    href={buildFilterHref({ status: opt.val, page: undefined })}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                      active
-                        ? "bg-slate-900 text-white"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                    }`}
-                  >
-                    {opt.label}
-                  </Link>
-                );
-              })}
-            </div>
-
-            {categoryGroups.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
-                <span className="text-xs font-bold text-slate-500 mr-1">
-                  Chuyên mục:
-                </span>
-                <Link
-                  href={buildFilterHref({ category: undefined, page: undefined })}
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
-                    !categorySlug
-                      ? "bg-indigo-50 border-indigo-300 text-indigo-700 font-semibold"
-                      : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  Tất cả
-                </Link>
-                {categoryGroups.map((cat) => (
-                  <Link
-                    key={cat._id}
-                    href={buildFilterHref({ category: cat._id, page: undefined })}
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
-                      categorySlug === cat._id
-                        ? "bg-indigo-50 border-indigo-300 text-indigo-700 font-semibold"
-                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    {cat.name}{" "}
-                    <span className="opacity-60">({cat.count})</span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
-                {q ? `Kết quả tìm kiếm: "${q}"` : "Truyện Mới Cập Nhật"}
-              </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-200/80 text-slate-700">
-                {totalCount.toLocaleString("vi-VN")} bộ
-              </span>
-            </div>
-
-            <div className="inline-flex rounded-full bg-white border border-slate-200 p-0.5 text-xs font-semibold">
-              <Link
-                href={buildFilterHref({ sort: undefined, page: undefined })}
-                className={`px-3 py-1 rounded-full ${
-                  sort === "latest"
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Mới cập nhật
-              </Link>
-              <Link
-                href={buildFilterHref({ sort: "views", page: undefined })}
-                className={`px-3 py-1 rounded-full ${
-                  sort === "views"
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Xem nhiều
-              </Link>
-            </div>
-          </div>
-
-          {stories.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-500 text-sm">
-              Không tìm thấy bộ truyện nào khớp với bộ lọc hiện tại.
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5">
-              {stories.map((story) => (
-                <StoryCard key={story.slug} story={story} />
-              ))}
-            </div>
-          )}
-
-          {totalPages > 1 && (
-            <div className="mt-8 flex items-center justify-center gap-2 flex-wrap">
-              {page > 1 && (
-                <Link
-                  href={buildFilterHref({ page: String(page - 1) })}
-                  className="px-3.5 py-1.5 rounded-full text-sm font-semibold bg-white border border-slate-200 hover:bg-slate-100"
-                >
-                  « Trang trước
-                </Link>
-              )}
-              <span className="px-4 py-1.5 rounded-full text-sm font-bold bg-indigo-600 text-white">
-                Trang {page} / {totalPages}
-              </span>
-              {page < totalPages && (
-                <Link
-                  href={buildFilterHref({ page: String(page + 1) })}
-                  className="px-3.5 py-1.5 rounded-full text-sm font-semibold bg-white border border-slate-200 hover:bg-slate-100"
-                >
-                  Trang sau »
-                </Link>
-              )}
-            </div>
-          )}
-        </>
-      )}
+      <Suspense key={filterKey} fallback={<StoriesSectionSkeleton />}>
+        <HomeStoriesSection
+          q={q}
+          type={type}
+          status={status}
+          categorySlug={categorySlug}
+          sort={sort}
+          page={page}
+        />
+      </Suspense>
     </div>
   );
 }
