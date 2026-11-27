@@ -18,13 +18,12 @@ export default function SmartImage({
   className = "",
   fallbackTitle,
   priority = false,
-  fadeIn = true,
+  fadeIn: _fadeIn,
 }: SmartImageProps) {
   const cleanSrc = (src || "").trim();
   const [stage, setStage] = useState<"direct" | "proxy" | "fallback">(
     cleanSrc ? "direct" : "fallback"
   );
-  const [loaded, setLoaded] = useState<boolean>(false);
 
   if (!cleanSrc || stage === "fallback") {
     return (
@@ -55,15 +54,9 @@ export default function SmartImage({
       fetchPriority={priority ? "high" : "auto"}
       decoding="async"
       referrerPolicy="no-referrer"
-      onLoad={() => setLoaded(true)}
-      className={`${className} ${
-        fadeIn
-          ? `transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`
-          : ""
-      }`}
+      className={className}
       onError={() => {
         if (stage === "direct") {
-          setLoaded(false);
           setStage("proxy");
         } else {
           setStage("fallback");

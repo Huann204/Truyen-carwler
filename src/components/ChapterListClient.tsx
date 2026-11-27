@@ -109,6 +109,7 @@ export default function ChapterListClient({
               <Link
                 key={chap.chapNumber}
                 href={`/truyen/${storySlug}/${encodeURIComponent(chap.chapNumber)}`}
+                prefetch={false}
                 className={`flex items-center justify-between px-4 py-3 hover:bg-indigo-50/60 transition-colors ${
                   isRead ? "bg-slate-50/80 text-slate-500" : "text-slate-800"
                 }`}

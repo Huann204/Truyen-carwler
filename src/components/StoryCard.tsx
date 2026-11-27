@@ -29,6 +29,7 @@ export default function StoryCard({ story }: { story: StoryCardData }) {
     <div className="group bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col h-full">
       <Link
         href={`/truyen/${story.slug}`}
+        prefetch={false}
         className="relative block aspect-[5/7] bg-slate-900 overflow-hidden"
       >
         <SmartImage
@@ -59,7 +60,7 @@ export default function StoryCard({ story }: { story: StoryCardData }) {
       <div className="p-2.5 flex-1 flex flex-col justify-between">
         <div>
           <h3 className="font-bold text-sm text-slate-800 line-clamp-2 leading-snug group-hover:text-indigo-600 transition-colors">
-            <Link href={`/truyen/${story.slug}`} title={story.title}>
+            <Link href={`/truyen/${story.slug}`} prefetch={false} title={story.title}>
               {story.title}
             </Link>
           </h3>
@@ -74,6 +75,7 @@ export default function StoryCard({ story }: { story: StoryCardData }) {
 
           <Link
             href={`/truyen/${story.slug}/${encodeURIComponent(story.latestChapNumber || "1")}`}
+            prefetch={false}
             className="font-semibold text-indigo-600 hover:text-indigo-700"
           >
             {story.hasMultipleChapters
