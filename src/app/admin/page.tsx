@@ -46,6 +46,8 @@ interface CrawlerStatusResponse {
     totalStories: number;
     comicStories: number;
     textStories: number;
+    vuiStories?: number;
+    ttbStories?: number;
     totalChapters: number;
     crawledChapters: number;
     missingChapters: number;
@@ -57,6 +59,7 @@ interface CrawlerStatusResponse {
     initialChapLimit: number;
     requestDelayMs: number;
     scope: "all" | "comic" | "text";
+    sourceMode?: "both" | "vui.mobi" | "tuthienbao.com";
     lastAutoRunAt?: string;
     nextAutoRunAt?: string;
   } | null;
@@ -90,9 +93,13 @@ export default function AdminCrawlerPage() {
   const [loggingIn, setLoggingIn] = useState(false);
 
   // Bulk Crawl Form
+  const [crawlSource, setCrawlSource] = useState<"vui.mobi" | "tuthienbao.com">(
+    "vui.mobi"
+  );
+  const [ttbForumId, setTtbForumId] = useState("47");
   const [startPage, setStartPage] = useState(1);
   const [endPage, setEndPage] = useState(2);
-  const [section, setSection] = useState("");
+  const [section, setSection] = useState("7");
   const [forceCheckExisting, setForceCheckExisting] = useState(false);
 
   // Single Story URL Form
@@ -105,7 +112,10 @@ export default function AdminCrawlerPage() {
   const [pagesPerAutoRun, setPagesPerAutoRun] = useState(2);
   const [initialChapLimit, setInitialChapLimit] = useState(10);
   const [requestDelayMs, setRequestDelayMs] = useState(350);
-  const [scope, setScope] = useState<"all" | "comic" | "text">("all");
+  const [scope, setScope] = useState<"all" | "comic" | "text">("comic");
+  const [sourceMode, setSourceMode] = useState<
+    "both" | "vui.mobi" | "tuthienbao.com"
+  >("both");
   const [configLoadedOnce, setConfigLoadedOnce] = useState(false);
 
   const fetchStatus = useCallback(async () => {
@@ -127,6 +137,7 @@ export default function AdminCrawlerPage() {
           setInitialChapLimit(json.config.initialChapLimit);
           setRequestDelayMs(json.config.requestDelayMs);
           setScope(json.config.scope);
+          setSourceMode(json.config.sourceMode || "both");
           setConfigLoadedOnce(true);
         }
       }
@@ -304,7 +315,9 @@ export default function AdminCrawlerPage() {
             Quản Trị Hệ Thống Cào Truyện Tự Động
           </h1>
           <p className="text-sm text-slate-500">
-            Nguồn đồng bộ: <code className="font-mono text-indigo-600">https://vui.mobi/truyen/</code> • Tự động phát hiện truyện mới &amp; chap mới
+            Nguồn đồng bộ:{" "}
+            <code className="font-mono text-indigo-600">vui.mobi</code> &amp;{" "}
+            <code className="font-mono text-indigo-600">tuthienbao.com</code> • Tự động phát hiện truyện mới &amp; chap mới
           </p>
         </div>
 
@@ -407,6 +420,9 @@ export default function AdminCrawlerPage() {
               label: "Tổng bộ truyện",
               val: data.stats.totalStories,
               color: "text-slate-900",
+              sub: `vui: ${data.stats.vuiStories ?? 0} • ttb: ${
+                data.stats.ttbStories ?? 0
+              }`,
             },
             {
               label: "Truyện Tranh",
@@ -444,6 +460,11 @@ export default function AdminCrawlerPage() {
               <div className={`text-2xl font-extrabold ${item.color}`}>
                 {item.val.toLocaleString("vi-VN")}
               </div>
+              {"sub" in item && item.sub && (
+                <div className="text-[11px] text-slate-400 mt-0.5 font-medium">
+                  {item.sub}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -564,7 +585,26 @@ export default function AdminCrawlerPage() {
               <Layers className="w-5 h-5 text-indigo-600" />
               1. Cào Theo Trang &amp; Chuyên Mục
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+            <div className="mb-3">
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Trang web nguồn
+              </label>
+              <select
+                value={crawlSource}
+                onChange={(e) =>
+                  setCrawlSource(
+                    e.target.value as "vui.mobi" | "tuthienbao.com"
+                  )
+                }
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white font-semibold text-slate-800"
+              >
+                <option value="vui.mobi">vui.mobi (Truyện Tranh / Chữ)</option>
+                <option value="tuthienbao.com">
+                  tuthienbao.com (Kho Truyện Tranh Forum)
+                </option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-2">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Từ trang
@@ -595,23 +635,47 @@ export default function AdminCrawlerPage() {
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Chuyên mục nguồn
                 </label>
-                <select
-                  value={section}
-                  onChange={(e) => setSection(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white"
-                >
-                  <option value="">Tất cả (/truyen/)</option>
-                  <option value="7">Truyện Tranh (section=7)</option>
-                  <option value="1">Truyện Chữ (section=1)</option>
-                  <option value="has_chapters">Có chia Chap</option>
-                  <option value="3">Cổ tích Việt Nam</option>
-                  <option value="4">Cổ tích thế giới</option>
-                  <option value="5">Truyện ngụ ngôn</option>
-                  <option value="6">Truyện Dân Gian</option>
-                  <option value="9">Truyện Cười</option>
-                </select>
+                {crawlSource === "tuthienbao.com" ? (
+                  <select
+                    value={ttbForumId}
+                    onChange={(e) => setTtbForumId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white"
+                  >
+                    <option value="47">Truyện Tranh 1 — Mới nhất (f=47)</option>
+                    <option value="1203">Truyện Tranh 8 (f=1203)</option>
+                    <option value="890">Truyện Tranh 7 (f=890)</option>
+                    <option value="782">Truyện Tranh 6 (f=782)</option>
+                    <option value="682">Truyện Tranh 5 (f=682)</option>
+                    <option value="615">Truyện Tranh 4 (f=615)</option>
+                    <option value="548">Truyện Tranh 3 (f=548)</option>
+                    <option value="437">Truyện Tranh 2 (f=437)</option>
+                    <option value="284">Tổng Hợp Nhiều Truyện (f=284)</option>
+                    <option value="640">Truyện Ngắn Một Tập (f=640)</option>
+                  </select>
+                ) : (
+                  <select
+                    value={section}
+                    onChange={(e) => setSection(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white"
+                  >
+                    <option value="7">Truyện Tranh (section=7)</option>
+                    <option value="">Tất cả (/truyen/)</option>
+                    <option value="1">Truyện Chữ (section=1)</option>
+                    <option value="has_chapters">Có chia Chap</option>
+                    <option value="3">Cổ tích Việt Nam</option>
+                    <option value="4">Cổ tích thế giới</option>
+                    <option value="5">Truyện ngụ ngôn</option>
+                    <option value="6">Truyện Dân Gian</option>
+                    <option value="9">Truyện Cười</option>
+                  </select>
+                )}
               </div>
             </div>
+            {crawlSource === "tuthienbao.com" && (
+              <p className="text-[11px] text-slate-500 mb-3">
+                Ghi chú: Trên tuthienbao.com, mỗi trang quét tương ứng <strong>10 bộ truyện</strong>.
+              </p>
+            )}
 
             <label className="flex items-center gap-2 text-xs text-slate-600 mb-3 cursor-pointer">
               <input
@@ -631,6 +695,8 @@ export default function AdminCrawlerPage() {
                   void postAction({
                     action: "run",
                     mode: "bulk_pages",
+                    source: crawlSource,
+                    ttbForumId,
                     startPage,
                     endPage,
                     section,
@@ -674,9 +740,14 @@ export default function AdminCrawlerPage() {
               type="url"
               value={singleUrl}
               onChange={(e) => setSingleUrl(e.target.value)}
-              placeholder="https://vui.mobi/forum/truyen-tranh/tien-si-slump-dr-slump-11202.html"
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm mb-2.5"
+              placeholder="https://tuthienbao.com/forum/forumdisplay.php?f=1436 hoặc link vui.mobi"
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm mb-1.5"
             />
+            <p className="text-[11px] text-slate-400 mb-2.5">
+              Hỗ trợ link truyện <code className="font-mono">vui.mobi</code>, link bộ truyện{" "}
+              <code className="font-mono">tuthienbao.com/forum/forumdisplay.php?f=...</code> hoặc topic{" "}
+              <code className="font-mono">showthread.php?t=...</code>
+            </p>
             <label className="flex items-center gap-2 text-xs text-slate-600 mb-3 cursor-pointer">
               <input
                 type="checkbox"
@@ -789,6 +860,25 @@ export default function AdminCrawlerPage() {
 
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Nguồn tự động cào &amp; Quét nhanh
+                </label>
+                <select
+                  value={sourceMode}
+                  onChange={(e) =>
+                    setSourceMode(
+                      e.target.value as "both" | "vui.mobi" | "tuthienbao.com"
+                    )
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white mb-3"
+                >
+                  <option value="both">
+                    Cả hai nguồn (vui.mobi + tuthienbao.com)
+                  </option>
+                  <option value="vui.mobi">Chỉ vui.mobi</option>
+                  <option value="tuthienbao.com">Chỉ tuthienbao.com</option>
+                </select>
+
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Phạm vi nội dung tự động cào
                 </label>
                 <select
@@ -798,10 +888,10 @@ export default function AdminCrawlerPage() {
                   }
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
                 >
+                  <option value="comic">Chỉ Truyện Tranh</option>
                   <option value="all">
                     Cả hai (Truyện tranh nhiều chap + Truyện chữ/truyện ngắn)
                   </option>
-                  <option value="comic">Chỉ Truyện Tranh</option>
                   <option value="text">Chỉ Truyện Chữ</option>
                 </select>
               </div>
@@ -828,6 +918,7 @@ export default function AdminCrawlerPage() {
                   initialChapLimit,
                   requestDelayMs,
                   scope,
+                  sourceMode,
                 })
               }
               className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 cursor-pointer"

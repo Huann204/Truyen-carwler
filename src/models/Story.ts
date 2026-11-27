@@ -1,6 +1,7 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 
 export interface IStory extends Document {
+  sourceSite: "vui.mobi" | "tuthienbao.com";
   sourceId: string;
   slug: string;
   sourceUrl: string;
@@ -29,6 +30,12 @@ export interface IStory extends Document {
 
 const StorySchema = new Schema<IStory>(
   {
+    sourceSite: {
+      type: String,
+      enum: ["vui.mobi", "tuthienbao.com"],
+      default: "vui.mobi",
+      index: true,
+    },
     sourceId: { type: String, required: true, unique: true, index: true },
     slug: { type: String, required: true, unique: true, index: true },
     sourceUrl: { type: String, required: true },

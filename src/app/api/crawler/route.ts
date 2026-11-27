@@ -50,6 +50,8 @@ export async function GET(req: NextRequest) {
     totalStories,
     comicStories,
     textStories,
+    vuiStories,
+    ttbStories,
     totalChapters,
     crawledChapters,
     config,
@@ -58,6 +60,8 @@ export async function GET(req: NextRequest) {
     Story.countDocuments(),
     Story.countDocuments({ storyType: "comic" }),
     Story.countDocuments({ storyType: "text" }),
+    Story.countDocuments({ sourceSite: { $ne: "tuthienbao.com" } }),
+    Story.countDocuments({ sourceSite: "tuthienbao.com" }),
     Chapter.countDocuments(),
     Chapter.countDocuments({ isCrawled: true }),
     getOrCreateCrawlerConfig(),
@@ -72,6 +76,8 @@ export async function GET(req: NextRequest) {
       totalStories,
       comicStories,
       textStories,
+      vuiStories,
+      ttbStories,
       totalChapters,
       crawledChapters,
       missingChapters: Math.max(0, totalChapters - crawledChapters),
@@ -182,6 +188,11 @@ export async function POST(req: NextRequest) {
       const scope = ["all", "comic", "text"].includes(body.scope)
         ? body.scope
         : "all";
+      const sourceMode = ["both", "vui.mobi", "tuthienbao.com"].includes(
+        body.sourceMode
+      )
+        ? body.sourceMode
+        : "both";
 
       const updateOps = autoCrawlEnabled
         ? {
@@ -192,6 +203,7 @@ export async function POST(req: NextRequest) {
               initialChapLimit,
               requestDelayMs,
               scope,
+              sourceMode,
               nextAutoRunAt: new Date(Date.now() + intervalMinutes * 60_000),
             },
           }
@@ -203,6 +215,7 @@ export async function POST(req: NextRequest) {
               initialChapLimit,
               requestDelayMs,
               scope,
+              sourceMode,
             },
             $unset: { nextAutoRunAt: 1 },
           };
@@ -242,6 +255,10 @@ export async function POST(req: NextRequest) {
       void runCrawlJob({
         trigger: body.mode === "single_story" ? "single" : "manual",
         mode: body.mode || "quick_update",
+        source: ["both", "vui.mobi", "tuthienbao.com"].includes(body.source)
+          ? body.source
+          : undefined,
+        ttbForumId: typeof body.ttbForumId === "string" ? body.ttbForumId : undefined,
         startPage: Number(body.startPage) || 1,
         endPage: Number(body.endPage) || 1,
         section: body.section || "",
